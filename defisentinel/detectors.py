@@ -11,7 +11,8 @@ SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 ACCESS_MODIFIERS = re.compile(r"^(only\w*|auth|requiresAuth|ownerOnly|isOwner|whenAuthorized|restricted|onlyRole|initializer|reinitializer)$")
 OWNER_CHECK = re.compile(r"(require\s*\(\s*(msg\.sender|_msgSender\(\))\s*==|if\s*\(\s*(msg\.sender|_msgSender\(\))\s*!=|_checkOwner\s*\(|_checkRole\s*\(|"
                          r"hasRole\s*\(|onlyOwner|require\s*\(\s*\w*(owner|admin|governance)\w*\s*==\s*msg\.sender|isAuthorized\s*\()", re.I)
-EXTERNAL_CALL = re.compile(r"(\.call\s*\{[^}]*\}\s*\(|\.call\s*\(|\.send\s*\(|\.transfer\s*\(\s*[^,()]+\)|\.(safeTransfer|safeTransferFrom|transfer|transferFrom)\s*\()")
+# `.call.value(x)()` / `.call.gas(g)()` is the pre-0.6 spelling of `.call{value: x}()`, still common in deployed code
+EXTERNAL_CALL = re.compile(r"(\.call\s*\{[^}]*\}\s*\(|\.call\s*(\.\s*(value|gas)\s*\([^()]*\)\s*)+\(|\.call\s*\(|\.send\s*\(|\.transfer\s*\(\s*[^,()]+\)|\.(safeTransfer|safeTransferFrom|transfer|transferFrom)\s*\()")
 SENSITIVE_NAME = re.compile(r"^(set|update|change)[A-Z]\w*|^(mint|burn\w*|withdraw\w*|sweep\w*|rescue\w*|upgrade\w*|pause|unpause|kill|destroy|"
                             r"transferOwnership|renounceOwnership|emergency\w*|setOwner|grant\w*|revoke\w*|execute\w*|migrate\w*)$")
 
@@ -75,7 +76,7 @@ def reentrancy(unit, c, f):
             continue
         w = later[0]
         ln = _line(unit, f, call.start())
-        severity = "critical" if re.search(r"\.call\s*\{[^}]*value", text) else ("high" if ".call" in text else "medium")
+        severity = "critical" if re.search(r"\.call\s*(\{[^}]*value|\.\s*value\s*\()", text) else ("high" if ".call" in text else "medium")
         yield Finding("reentrancy", severity, "State updated after external call (re-entrancy)",
                       c.name, f.name, ln, unit.line_text(ln),
                       f"`{f.name}` makes an external call and only afterwards writes `{w.group(1) or w.group(5)}` "
@@ -86,7 +87,7 @@ def reentrancy(unit, c, f):
 
 
 def unchecked_call(unit, c, f):
-    for m in re.finditer(r"\.(call|send|delegatecall)\s*(\{[^}]*\})?\s*\(", f.body):
+    for m in re.finditer(r"\.(call|send|delegatecall|callcode)\s*(\{[^}]*\}|(\.\s*(value|gas)\s*\([^()]*\)\s*)*)\s*\(", f.body):
         if _consumed(f.body, m.start()):
             continue
         ln = _line(unit, f, m.start())
@@ -163,11 +164,22 @@ def arbitrary_delegatecall(unit, c, f):
 
 
 def weak_randomness(unit, c, f):
-    for m in re.finditer(r"(block\.(timestamp|difficulty|prevrandao|number)|blockhash\s*\()[^;]*%|keccak256\s*\([^;]*block\.(timestamp|difficulty|prevrandao)", f.body):
+    seed = r"(block\.(timestamp|difficulty|prevrandao|number|coinbase|blockhash)|\bblockhash\s*\(|\bnow\b)"
+    for m in re.finditer(rf"{seed}[^;]*%|(keccak256|sha3|sha256)\s*\([^;]*{seed}", f.body):
         ln = _line(unit, f, m.start())
         yield Finding("weak-randomness", "high", "Randomness from block data", c.name, f.name, ln, unit.line_text(ln),
                       "Block values are known to (and partly chosen by) validators and any contract in the same block can compute "
                       "the same 'random' number before acting.", "Use a VRF (e.g. Chainlink VRF) or commit-reveal.")
+        return
+
+
+def timestamp_dependence(unit, c, f):
+    """SWC-116: a condition decided by the block timestamp, which the block producer can nudge."""
+    for m in re.finditer(r"(if|require|while)\s*\([^;{]*\b(block\.timestamp|now)\b", f.body):
+        ln = _line(unit, f, m.start())
+        yield Finding("timestamp-dependence", "low", "Logic depends on the block timestamp", c.name, f.name, ln, unit.line_text(ln),
+                      "Validators can shift the timestamp by several seconds. Fine for day-scale deadlines; unsafe when "
+                      "seconds decide a winner, a price or a payout.", "Do not let short time windows decide value transfers.")
         return
 
 
@@ -231,7 +243,7 @@ def divide_before_multiply(unit, c, f):
 
 
 FUNCTION_DETECTORS = [reentrancy, unchecked_call, tx_origin, access_control, unprotected_initializer, spot_oracle,
-                      arbitrary_delegatecall, weak_randomness, self_destruct, unchecked_erc20, share_inflation,
+                      arbitrary_delegatecall, weak_randomness, timestamp_dependence, self_destruct, unchecked_erc20, share_inflation,
                       msg_value_loop, signature_replay, divide_before_multiply]
 
 
