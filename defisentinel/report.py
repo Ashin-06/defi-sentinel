@@ -60,9 +60,26 @@ def sarif(results: dict[str, list[Finding]]) -> dict:
             "runs": [{"tool": {"driver": {"name": "defi-sentinel", "version": "1.0.0", "rules": rules}}, "results": res}]}
 
 
+def plain_text(results: dict[str, list[Finding]]) -> str:
+    lines = []
+    for path, fs in results.items():
+        for f in fs:
+            where = f"{f.contract}.{f.function}" if f.function else f.contract
+            lines.append(f"{path}:{f.line}  [{f.severity.upper():8s}] {f.title}  ({where})")
+            lines.append(f"    {f.snippet}")
+    lines.append("\n" + "  ".join(f"{k}: {v}" for k, v in summary(results).items()))
+    return "\n".join(lines)
+
+
 def write(results, fmt: str, out: str | None) -> str:
-    text = markdown(results) if fmt == "md" else json.dumps(sarif(results) if fmt == "sarif" else
-                                                             {k: [f.as_dict() for f in v] for k, v in results.items()}, indent=2)
+    if fmt == "text":
+        text = plain_text(results)
+    elif fmt in ("md", "markdown"):
+        text = markdown(results)
+    elif fmt == "sarif":
+        text = json.dumps(sarif(results), indent=2)
+    else:
+        text = json.dumps({k: [f.as_dict() for f in v] for k, v in results.items()}, indent=2)
     if out:
         Path(out).write_text(text, encoding="utf-8")
     return text

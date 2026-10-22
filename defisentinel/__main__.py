@@ -42,7 +42,7 @@ def main(argv=None):
                     print(f"    {f.snippet}")
             print("\n" + "  ".join(f"{k}: {v}" for k, v in summary(res).items()))
             if a.out:
-                write(res, "json", a.out)
+                write(res, "text", a.out)
         else:
             text = write(res, a.format, a.out)
             if not a.out:
