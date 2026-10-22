@@ -26,12 +26,28 @@ def main(argv=None):
     m = sub.add_parser("simulate", help="mempool monitor on a simulated chain")
     m.add_argument("--oracle", choices=["spot", "twap"], default="spot")
     m.add_argument("--no-guardian", action="store_true")
+    b = sub.add_parser("smartbugs", help="score the scanner on the SmartBugs Curated labelled contracts")
+    b.add_argument("path", help="checkout of github.com/ASSERT-KTH/smartbugs-curated")
+    b.add_argument("--out", default="smartbugs_results.json")
     w = sub.add_parser("watch", help="watch a live chain over JSON-RPC")
     w.add_argument("--rpc", required=True)
     w.add_argument("--contract", action="append", default=[])
     w.add_argument("--interval", type=float, default=2.0)
     a = ap.parse_args(argv)
 
+    if a.cmd == "smartbugs":
+        import json
+        from pathlib import Path
+
+        from .benchmark import run
+
+        res = run(a.path)
+        for cat, r in res["categories"].items():
+            print(f"{cat:28s} contracts {r['contracts_flagged']:>2}/{r['contracts']:<2}  labelled lines {r['labels_found']:>2}/{r['labels']}")
+        print(f"line recall {res['line_recall_all']:.1%} overall, {res['line_recall_covered_categories']:.1%} in covered categories")
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.out).write_text(json.dumps(res, indent=2))
+        return
     if a.cmd == "scan":
         res = scan_path(a.path)
         if a.format == "text":

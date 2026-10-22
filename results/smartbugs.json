@@ -1,0 +1,198 @@
+{
+  "dataset": "SmartBugs Curated (143 contracts, 208 labelled vulnerabilities)",
+  "note": "Contracts can hold real issues that were never labelled, so the last figure is a lower bound on precision, not precision itself. The 'after' figures are measured on the same contracts that exposed the gaps (pre-0.6 call syntax, sha3/blockhash seeds, timestamp conditions), so they are in-sample.",
+  "before_fixes": {
+    "line_recall_all": 0.207,
+    "line_recall_covered_categories": 0.236,
+    "line_findings_on_a_labelled_line": 0.365,
+    "categories": {
+      "access_control": {
+        "contracts": 18,
+        "contracts_flagged": 15,
+        "labels": 24,
+        "labels_found": 9,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.833,
+        "line_recall": 0.375
+      },
+      "arithmetic": {
+        "contracts": 15,
+        "contracts_flagged": 14,
+        "labels": 23,
+        "labels_found": 0,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.933,
+        "line_recall": 0.0
+      },
+      "bad_randomness": {
+        "contracts": 8,
+        "contracts_flagged": 4,
+        "labels": 34,
+        "labels_found": 5,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.5,
+        "line_recall": 0.147
+      },
+      "denial_of_service": {
+        "contracts": 6,
+        "contracts_flagged": 0,
+        "labels": 14,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "front_running": {
+        "contracts": 4,
+        "contracts_flagged": 0,
+        "labels": 7,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "other": {
+        "contracts": 3,
+        "contracts_flagged": 0,
+        "labels": 5,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "reentrancy": {
+        "contracts": 31,
+        "contracts_flagged": 1,
+        "labels": 32,
+        "labels_found": 1,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.032,
+        "line_recall": 0.031
+      },
+      "short_addresses": {
+        "contracts": 1,
+        "contracts_flagged": 0,
+        "labels": 1,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "time_manipulation": {
+        "contracts": 5,
+        "contracts_flagged": 0,
+        "labels": 7,
+        "labels_found": 0,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "unchecked_low_level_calls": {
+        "contracts": 52,
+        "contracts_flagged": 25,
+        "labels": 75,
+        "labels_found": 31,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.481,
+        "line_recall": 0.413
+      }
+    }
+  },
+  "after_fixes": {
+    "line_recall_all": 0.491,
+    "line_recall_covered_categories": 0.559,
+    "line_findings_on_a_labelled_line": 0.519,
+    "categories": {
+      "access_control": {
+        "contracts": 18,
+        "contracts_flagged": 15,
+        "labels": 24,
+        "labels_found": 9,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.833,
+        "line_recall": 0.375
+      },
+      "arithmetic": {
+        "contracts": 15,
+        "contracts_flagged": 14,
+        "labels": 23,
+        "labels_found": 0,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.933,
+        "line_recall": 0.0
+      },
+      "bad_randomness": {
+        "contracts": 8,
+        "contracts_flagged": 6,
+        "labels": 34,
+        "labels_found": 8,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.75,
+        "line_recall": 0.235
+      },
+      "denial_of_service": {
+        "contracts": 6,
+        "contracts_flagged": 0,
+        "labels": 14,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "front_running": {
+        "contracts": 4,
+        "contracts_flagged": 0,
+        "labels": 7,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "other": {
+        "contracts": 3,
+        "contracts_flagged": 0,
+        "labels": 5,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "reentrancy": {
+        "contracts": 31,
+        "contracts_flagged": 23,
+        "labels": 32,
+        "labels_found": 23,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.742,
+        "line_recall": 0.719
+      },
+      "short_addresses": {
+        "contracts": 1,
+        "contracts_flagged": 0,
+        "labels": 1,
+        "labels_found": 0,
+        "covered_by_a_detector": false,
+        "contract_recall": 0.0,
+        "line_recall": 0.0
+      },
+      "time_manipulation": {
+        "contracts": 5,
+        "contracts_flagged": 2,
+        "labels": 7,
+        "labels_found": 1,
+        "covered_by_a_detector": true,
+        "contract_recall": 0.4,
+        "line_recall": 0.143
+      },
+      "unchecked_low_level_calls": {
+        "contracts": 52,
+        "contracts_flagged": 52,
+        "labels": 75,
+        "labels_found": 68,
+        "covered_by_a_detector": true,
+        "contract_recall": 1.0,
+        "line_recall": 0.907
+      }
+    }
+  }
+}

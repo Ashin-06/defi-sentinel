@@ -28,7 +28,8 @@ contracts/VulnerableLending.sol:64  [CRITICAL] `setPriceFeed` is callable by any
 | `share-inflation`: 1:1 shares on an empty vault, no virtual offset | ERC4626 first-depositor attacks |
 | `msg-value-in-loop`: `msg.value` counted on every iteration | Opyn, SushiSwap MISO |
 | `signature-replay`: `ecrecover` without nonce/deadline | cross-chain replays |
-| `weak-randomness`: block data used as entropy | on-chain lotteries |
+| `weak-randomness`: block data (timestamp, number, blockhash, `now`) used as entropy | on-chain lotteries |
+| `timestamp-dependence`: a condition decided by `block.timestamp` / `now` (SWC-116) | GovernMental, lottery timing |
 | `unchecked-call` / `unchecked-erc20`: ignored success flags | USDT-style tokens returning false |
 | `integer-overflow` (< 0.8 without SafeMath), `divide-before-multiply`, `selfdestruct`, `floating-pragma` | BEC token |
 
@@ -36,6 +37,28 @@ On the bundled contracts:
 - `VulnerableLending.sol`: 11 findings, 4 critical.
 - `VulnerableVault.sol`: 12 findings, 4 critical.
 - `SafeLending.sol`, the same market with TWAP, checks-effects-interactions, `nonReentrant`, SafeERC20 and `onlyOwner`: **0 findings**.
+
+### Measured on real contracts: SmartBugs Curated
+
+`python -m defisentinel smartbugs smartbugs-curated/` scores the scanner on [SmartBugs Curated](https://github.com/ASSERT-KTH/smartbugs-curated): 143 real contracts, mostly from Etherscan, with 208 vulnerabilities labelled by line and category. Results are in `results/smartbugs.json`. A labelled bug counts as found when a detector of the same category reports within 3 lines of it.
+
+| Category | Contracts flagged, first run → now | Labelled lines found, first run → now |
+|---|---|---|
+| Re-entrancy | 1 / 31 → **23 / 31** | 1 → **23** of 32 |
+| Unchecked low-level calls | 25 / 52 → **52 / 52** | 31 → **68** of 75 |
+| Access control | 15 / 18 | 9 of 24 |
+| Arithmetic (pre-0.8 overflow) | 14 / 15 | 0 of 23 (file-level check, no line) |
+| Bad randomness | 4 / 8 → 6 / 8 | 5 → 8 of 34 |
+| Time manipulation | 0 / 5 → 2 / 5 | 0 → 1 of 7 |
+| Denial of service, front-running, short address, other | 0 / 14 | 0 of 27 (no detector) |
+
+Overall the scanner finds **49%** of labelled lines, 56% within the categories it has detectors for. About half of its line-level findings sit on a labelled line. The rest are not necessarily false: the contracts hold issues nobody labelled.
+
+What the first run exposed:
+- **Old call syntax was invisible.** Most of these real contracts use the pre-0.6 `msg.sender.call.value(x)()`, which the re-entrancy and unchecked-call detectors did not recognise.
+- **Narrow randomness seeds.** The randomness check only covered `keccak256` and `%` patterns, missing `sha3`, `blockhash` and `now` seeds.
+
+Both are fixed, and a timestamp-dependence check was added. The "now" column is measured on the same contracts that revealed the gaps, so treat it as in-sample. Denial-of-service, front-running and short-address bugs need dataflow or transaction-ordering analysis that this pattern scanner doesn't attempt; use Slither or Mythril for those.
 
 The scanner has its own source model, which handles comments and strings safely and tracks line numbers. It needs **no compiler**, so it works on single files, partial code and code that doesn't build yet. Outputs are text, Markdown, JSON and **SARIF 2.1.0**, with `--fail-on high` for CI gates. `.github/workflows/contract-scan.yml` uploads the results to GitHub code scanning.
 
@@ -80,7 +103,8 @@ The watcher polls the pending block. It decodes selectors for flash-loan entry p
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q                              # 10 tests (includes a mocked JSON-RPC node)
+python -m pytest -q                              # 11 tests (includes a mocked JSON-RPC node)
+python -m defisentinel smartbugs smartbugs-curated/   # recall on 143 labelled real contracts
 python -m defisentinel scan contracts/           # --format md|sarif|json --out FILE --fail-on high
 python -m defisentinel simulate [--oracle twap] [--no-guardian]
 streamlit run app.py                             # scanner + monitor dashboard
@@ -91,7 +115,8 @@ streamlit run app.py                             # scanner + monitor dashboard
 ```
 defisentinel/
   solidity.py   source model: contracts, functions, modifiers, state variables, lines
-  detectors.py  14 function-level detectors + file-level checks
+  detectors.py  15 function-level detectors + 2 file-level checks
+  benchmark.py  scoring on the SmartBugs Curated labelled contracts
   report.py     text / Markdown / JSON / SARIF
   keccak.py     pure-Python Keccak-256 for selectors
   chain.py      forkable AMM + TWAP + flash loans + lending, atomic transactions with traces

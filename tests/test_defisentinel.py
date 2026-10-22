@@ -101,3 +101,28 @@ def test_rpc_watcher_with_mock_node():
 
     alerts = watch("http://node", [victim], rounds=1, on_alert=lambda a: None, transport=httpx.MockTransport(handler))
     assert len(alerts) == 1 and alerts[0].tx_hash == "0x1" and "flash loan" in alerts[0].reason and victim in alerts[0].reason
+
+
+def test_pre_060_call_syntax_and_timestamp_conditions():
+    from defisentinel.detectors import unit_findings
+    from defisentinel.solidity import parse
+
+    src = """pragma solidity ^0.4.19;
+contract Bank {
+    mapping(address => uint) public balances;
+    uint public jackpot;
+    function Collect(uint _am) public {
+        if (msg.sender.call.value(_am)()) {
+            balances[msg.sender] -= _am;
+        }
+    }
+    function pay(address to) public {
+        to.send(1 ether);
+    }
+    function play() public payable {
+        if (now % 15 == 0) { jackpot = 0; }
+    }
+}
+"""
+    ids = {f.id for f in unit_findings(parse(src, "Bank.sol"))}
+    assert {"reentrancy", "unchecked-call", "timestamp-dependence", "weak-randomness"} <= ids
