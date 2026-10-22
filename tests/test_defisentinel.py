@@ -8,7 +8,7 @@ from defisentinel.detectors import unit_findings
 from defisentinel.keccak import keccak256, selector
 from defisentinel.monitor import Monitor
 from defisentinel.report import sarif, scan_path
-from defisentinel.rpc import analyse_tx, Client, watch
+from defisentinel.rpc import watch
 from defisentinel.scenario import run
 from defisentinel.solidity import parse, strip_comments_and_strings
 

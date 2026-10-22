@@ -94,6 +94,8 @@ def watch(url: str, watched: list[str], interval: float = 2.0, rounds: int | Non
         except (RuntimeError, httpx.HTTPError):
             block = client.call("eth_getBlockByNumber", ["latest", True])
         for tx in (block or {}).get("transactions", []):
+            if not isinstance(tx, dict) or "hash" not in tx:
+                continue  # providers that return only hashes, or malformed entries
             if tx["hash"] in seen:
                 continue
             seen.add(tx["hash"])
