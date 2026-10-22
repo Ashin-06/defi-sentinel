@@ -16,5 +16,7 @@ jobs:
       - name: Scan Solidity
         run: python -m defisentinel scan contracts --format sarif --out results.sarif
       - uses: github/codeql-action/upload-sarif@v3
+        # code scanning uploads need a public repo (or GitHub Advanced Security)
+        if: ${{ !github.event.repository.private }}
         with:
           sarif_file: results.sarif
