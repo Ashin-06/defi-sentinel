@@ -67,7 +67,26 @@ python -m defisentinel scan contracts/           # --format md|sarif|json --out 
 python -m defisentinel simulate                  # --oracle twap, --no-guardian
 python -m defisentinel smartbugs smartbugs-curated/
 streamlit run app.py                             # dashboard
+python -m defisentinel serve                     # scanning API on http://127.0.0.1:8008
 ```
+
+To build the container image: `docker build -t defi-sentinel .` (see [docs/runbook.md](docs/runbook.md)).
+
+## Scanning API
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/scan` | scan Solidity sources (`{"files": {...}, "fail_on": "high"}`); returns findings as JSON or SARIF and whether the scan passed |
+| `GET /v1/scans`, `/v1/scans/{id}` | scan history: findings, pass/fail and each file's SHA-256 (sources are not stored) |
+| `GET /healthz`, `/readyz`, `/metrics` | health, readiness and Prometheus metrics |
+
+API keys carry a role: `scanner` for CI pipelines, `viewer` reads the history, `monitor` reads metrics. Create one with `python -m defisentinel.ops keygen`.
+
+| Variable | Purpose |
+|---|---|
+| `DEFISENTINEL_ENV=production` | refuse to start without hashed API keys and a database |
+| `DEFISENTINEL_API_KEYS` / `DEFISENTINEL_KEYS_FILE` | hashed API keys with roles |
+| `DEFISENTINEL_DATABASE_URL` | `sqlite:///...` or `postgresql://...` |
 
 ## Results
 
@@ -91,6 +110,8 @@ defisentinel/
   monitor.py    transaction simulation, attack checks, guardian response
   scenario.py   simulated chain activity with a sandwich bot and an oracle attack
   rpc.py        live JSON-RPC watcher
+  api.py        scanning API with stored scan history
+  ops.py        settings, API keys, limits, logs, metrics
 contracts/      vulnerable and fixed example contracts
 app.py          Streamlit dashboard
 ```
@@ -100,3 +121,10 @@ app.py          Streamlit dashboard
 - The scanner matches patterns with light dataflow; it does not do symbolic execution. Use it as a fast first pass alongside Slither, Mythril and a manual audit.
 - Denial-of-service, front-running and short-address bugs need analysis this scanner doesn't do.
 - The simulated market models the mechanics needed for price and liquidity attacks. On mainnet, use an EVM fork such as Anvil or Tenderly for exact execution.
+- The code has not had an independent security review.
+
+See [SECURITY.md](SECURITY.md) and [docs/threat-model.md](docs/threat-model.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
