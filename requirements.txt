@@ -1,6 +1,13 @@
 numpy>=1.26
 pandas>=2.0
 httpx>=0.27
+pycryptodomex>=3.20    # Keccak-256 for function selectors
+fastapi>=0.110
+uvicorn>=0.27
+pydantic>=2.6
+sqlalchemy>=2.0
+psycopg[binary]>=3.2   # only used with a postgresql:// DEFISENTINEL_DATABASE_URL
+prometheus-client>=0.20
 streamlit>=1.40
 plotly>=5.18
 pytest>=8.0

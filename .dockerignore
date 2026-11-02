@@ -1,0 +1,4 @@
+*
+!defisentinel
+!requirements.lock
+**/__pycache__
