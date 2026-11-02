@@ -3,10 +3,13 @@
     python -m defisentinel scan contracts/ [--format text|md|sarif|json] [--out report.sarif] [--fail-on high]
     python -m defisentinel simulate [--oracle spot|twap] [--no-guardian]
     python -m defisentinel watch --rpc https://... --contract 0xYourPool [--contract ...]
+    python -m defisentinel serve        # scanning API (settings: DEFISENTINEL_* environment variables)
+    python -m defisentinel migrate      # apply database migrations and exit
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from .detectors import SEVERITY_ORDER
@@ -33,7 +36,30 @@ def main(argv=None):
     w.add_argument("--rpc", required=True)
     w.add_argument("--contract", action="append", default=[])
     w.add_argument("--interval", type=float, default=2.0)
+    sv = sub.add_parser("serve", help="scanning API")
+    sv.add_argument("--host", help="default DEFISENTINEL_HOST or 127.0.0.1; any other address needs API keys")
+    sv.add_argument("--port", type=int, help="default DEFISENTINEL_PORT or 8008")
+    sub.add_parser("migrate", help="apply database migrations to DEFISENTINEL_DATABASE_URL")
     a = ap.parse_args(argv)
+
+    if a.cmd in ("serve", "migrate"):
+        from . import db, ops
+
+        for name, val in (("HOST", getattr(a, "host", None)), ("PORT", getattr(a, "port", None))):
+            if val is not None:
+                os.environ[f"DEFISENTINEL_{name}"] = str(val)
+        try:
+            settings = ops.load_settings()  # fail here, before uvicorn, with a readable message
+        except ops.ConfigError as e:
+            sys.exit(f"configuration error: {e}")
+        if a.cmd == "migrate":
+            print(*(db.migrate(db.engine(settings.database_url)) or ["up to date"]), sep="\n")
+            return
+        import uvicorn
+
+        ops.setup_logging(settings.log_level)
+        uvicorn.run("defisentinel.api:app", host=settings.host, port=settings.port, log_config=None, access_log=False)
+        return
 
     if a.cmd == "smartbugs":
         import json

@@ -48,7 +48,7 @@ def run(root: str | Path) -> dict:
         for cat, ln in labelled_lines:
             per_cat[cat]["labels"] += 1
             per_cat[cat]["labels_found"] += any(c == cat and line > 1 and abs(line - ln) <= LINE_TOLERANCE for c, line in mapped)
-        for c, line in mapped:
+        for _cat, line in mapped:
             if line > 1:  # skip file-level findings
                 line_findings += 1
                 hits += any(abs(line - ln) <= LINE_TOLERANCE for _, ln in labelled_lines)
